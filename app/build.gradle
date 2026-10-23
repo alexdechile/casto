@@ -49,8 +49,6 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-        // Media3 Cast APIs are annotated with @UnstableApi (RequiresOptIn.Level.ERROR).
-        freeCompilerArgs.add('-opt-in=androidx.media3.common.util.UnstableApi')
     }
 }
 

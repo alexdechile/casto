@@ -12,6 +12,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 
+// Media3 Cast APIs are annotated with @UnstableApi; opt in for the whole class.
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : AppCompatActivity() {
 
     private lateinit var castPlayer: CastPlayer

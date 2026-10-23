@@ -14,6 +14,8 @@ import androidx.media3.session.MediaSessionService
  * Media3 takes care of the foreground notification and of forwarding media commands
  * from controllers (notification, Bluetooth, Cast, etc.) to the session player.
  */
+// Media3 Cast APIs are annotated with @UnstableApi; opt in for the whole class.
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
