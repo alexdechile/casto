@@ -1,0 +1,13 @@
+* text=auto
+
+# Keep shell scripts LF so they run on Linux CI runners
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# Binaries
+*.jar binary
+*.jks binary
+*.keystore binary
+*.mp4 binary
+*.png binary

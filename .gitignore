@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration
+local.properties
+keystore.properties
+
+# Signing material — never commit these
+*.jks
+*.keystore
+!debug.keystore
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Android build output
+app/release/

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Casto</string>
+    <string name="media_route_button_description">Enviar a dispositivo Cast</string>
+    <string name="play">Reproducir</string>
+    <string name="pause">Pausar</string>
+</resources>
