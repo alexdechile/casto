@@ -30,24 +30,37 @@ rotación de pantalla y el botón Cast cambia el reproductor del servicio al dis
 ```
 app/src/main/java/com/example/casto/
 ├── MainActivity.kt      # MediaRouteButton + MediaController + PlayerView
-└── PlaybackService.kt   # MediaSessionService dueño del CastPlayer
+├── PlaybackService.kt   # MediaSessionService dueño del CastPlayer
+├── LocalMediaServer.kt  # servidor HTTP (NanoHTTPD) que publica el MP4 en la LAN
+└── HttpRange.kt         # parser de cabecera Range (con tests en src/test)
 app/src/main/res/raw/
 └── sample_video.mp4     # ⚠️ reemplazar por un MP4 real
 ```
 
-## Video local
+## Video local y Cast
 
 El archivo `app/src/main/res/raw/sample_video.mp4` es un **placeholder vacío**.
-Reemplázalo por un MP4 real (mismo nombre) o cambia la URI en `MainActivity`:
+Reemplázalo por un MP4 real con el mismo nombre (o ajusta `VIDEO_NAME` en `LocalMediaServer`).
 
-```kotlin
-val videoUri = Uri.parse("android.resource://$packageName/${R.raw.mi_video}")
+Al arrancar, `LocalMediaServer` copia el video a la caché y lo publica por HTTP:
+
+```
+http://<ip-de-tu-wifi>:8090/sample_video.mp4
 ```
 
-> **Limitación**: un `android.resource://` (o `content://`) solo lo puede leer el teléfono.
-> La reproducción local funciona, y el botón Cast descubre y conecta dispositivos, pero el
-> receptor remoto **no** puede descargar ese archivo. Para que el video se vea en el
-> Chromecast hay que servirlo por HTTP(S) (por ejemplo un servidor local en la LAN).
+Soporta `Range` (seek), `HEAD`/`GET` y responde `video/mp4`. Se usa **el mismo URL** para la
+reproducción local y para el Chromecast, así que al elegir un dispositivo Cast el video se ve
+en la TV.
+
+Requisitos:
+
+- Teléfono y Chromecast en la **misma red Wi-Fi**.
+- Puerto **8090** libre (si está ocupado, se usa uno efímero automáticamente).
+- `android:usesCleartextTraffic="true"` en el manifest, porque el video se sirve por HTTP local.
+- La app debe seguir viva mientras se reproduce (el servicio la mantiene en primer plano).
+
+Si no hay red local disponible, el servidor cae a `127.0.0.1` y la reproducción local sigue
+funcionando; solo el envío al Chromecast requiere LAN.
 
 
 ## Compilar en local

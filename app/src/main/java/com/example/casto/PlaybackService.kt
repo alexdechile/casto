@@ -23,6 +23,9 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        // Publish the bundled MP4 on the LAN so the Cast receiver can download it.
+        LocalMediaServer.start(this)
+
         val exoPlayer = ExoPlayer.Builder(this).build()
         val castPlayer = CastPlayer.Builder(this)
             .setLocalPlayer(exoPlayer)
@@ -49,6 +52,7 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         mediaSession = null
+        LocalMediaServer.stop()
         super.onDestroy()
     }
 }

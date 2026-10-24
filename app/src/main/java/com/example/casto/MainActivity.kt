@@ -1,7 +1,6 @@
 package com.example.casto
 
 import android.content.ComponentName
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -90,9 +89,15 @@ class MainActivity : AppCompatActivity() {
     private fun startLocalVideoIfNeeded(controller: MediaController) {
         if (controller.currentMediaItem != null) return
 
-        // Replace res/raw/sample_video.mp4 with a real MP4 file.
-        val videoUri = Uri.parse("android.resource://$packageName/${R.raw.sample_video}")
-        controller.setMediaItem(MediaItem.fromUri(videoUri))
+        // The bundled MP4 is served over HTTP (LocalMediaServer) so the exact same URL
+        // works for local playback and for the Cast receiver, which cannot read
+        // android.resource:// URIs. Replace res/raw/sample_video.mp4 with a real MP4.
+        val mediaItem = MediaItem.Builder()
+            .setUri(LocalMediaServer.videoUri(this))
+            .setMimeType("video/mp4")
+            .build()
+
+        controller.setMediaItem(mediaItem)
         controller.prepare()
         controller.playWhenReady = true
     }
