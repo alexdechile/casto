@@ -15,28 +15,14 @@ android {
         versionName '1.0'
     }
 
-    // Signing material is read from keystore.properties (created by CI from GitHub Secrets).
-    // Never commit keystore.properties or the .jks file.
-    signingConfigs {
-        release {
-            if (rootProject.file('keystore.properties').exists()) {
-                def props = new Properties()
-                rootProject.file('keystore.properties').withInputStream { props.load(it) }
-                storeFile rootProject.file(props['storeFile'])
-                storePassword props['storePassword']
-                keyAlias props['keyAlias']
-                keyPassword props['keyPassword']
-            }
-        }
-    }
+    // No release signing configured: CI builds a debug APK signed with the
+    // automatic debug key, which is enough to install and test the app.
+    // (Release builds stay unsigned unless a signing config is added later.)
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (rootProject.file('keystore.properties').exists()) {
-                signingConfig signingConfigs.release
-            }
         }
     }
 

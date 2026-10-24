@@ -9,7 +9,7 @@ Incluye:
 - `MainActivity` con un `MediaRouteButton` para elegir el dispositivo Cast y un
   `PlayerView` enlazado a un **`MediaController`** conectado al servicio (no crea players propios).
 - `DefaultCastOptionsProvider` declarado en el `AndroidManifest.xml`.
-- CI en GitHub Actions: build debug, lint y tests; APK de release firmado.
+- CI en GitHub Actions: build debug, lint y tests, con el APK debug como artifact.
 
 ## Arquitectura
 
@@ -58,40 +58,22 @@ val videoUri = Uri.parse("android.resource://$packageName/${R.raw.mi_video}")
 
 Requiere JDK 17 y Android SDK con `compileSdk 36`.
 
-## GitHub Actions
+## Descargar el APK (sin configurar nada)
 
-### `.github/workflows/android-ci.yml`
+El workflow `.github/workflows/android-ci.yml` compila en cada push a `main`
+(build debug + lint + tests) y deja el APK como **artifact**:
 
-En cada push/PR a `main`: `assembleDebug`, `lintDebug`, `testDebugUnitTest` y sube el APK debug.
+1. Abre el repo en GitHub → pestaña **Actions**.
+2. Entra al run más reciente de **Android CI** (el del check verde).
+3. Baja hasta **Artifacts** y descarga **`app-debug`** (un `.zip`).
+4. Descomprime y pasa `app-debug.apk` al teléfono; instálalo (activando
+   "instalar apps de origen desconocido" si lo pide).
 
-### `.github/workflows/build.yml`
+Ese APK ya viene firmado con la clave de debug automática, así que sirve para
+probar en cualquier teléfono. No hay secrets, keystores ni configuración extra.
 
-En cada push a `main` genera un **APK de release firmado**. La firma se lee de los
-secrets del repositorio.
-
-Configura en **Settings → Secrets and variables → Actions**:
-
-| Secret | Contenido |
-|---|---|
-| `KEYSTORE_BASE64` | El keystore `.jks` codificado en base64 |
-| `KEYSTORE_PASSWORD` | Password del keystore |
-| `KEY_ALIAS` | Alias de la clave |
-| `KEY_PASSWORD` | Password de la clave |
-
-Para generar el base64 en Linux/macOS:
-
-```bash
-base64 -w0 release-keystore.jks > keystore.b64
-```
-
-En PowerShell:
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("release-keystore.jks")) | Set-Content keystore.b64
-```
-
-El workflow escribe un `keystore.properties` temporal (ignorado por git) y Gradle lo usa
-para firmar. Nunca se sube el keystore ni sus passwords al repositorio.
+> Si algún día necesitas un APK de release firmado para publicar, hay que volver a
+> añadir un workflow de firma con un keystore propio.
 
 ## Notas
 
