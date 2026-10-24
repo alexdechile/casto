@@ -1,29 +1,42 @@
 package com.example.casto
 
+import android.content.ComponentName
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.mediarouter.app.MediaRouteButton
-import androidx.media3.cast.CastPlayer
 import androidx.media3.cast.MediaRouteButtonFactory
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
+import com.google.common.util.concurrent.ListenableFuture
 
+/**
+ * UI only: the Cast button and a PlayerView bound to a MediaController.
+ *
+ * Playback itself lives in [PlaybackService], which owns the single CastPlayer
+ * (local ExoPlayer + Cast receiver) exposed through a MediaSession.
+ */
 // Media3 Cast APIs are annotated with @UnstableApi; opt in for the whole class.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var castPlayer: CastPlayer
+    private lateinit var playerView: PlayerView
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 1) Cast button. Media3 resolves the Cast MediaRouteSelector, so the button
-        //    only needs to be handed the view and it starts discovering devices.
+        playerView = findViewById(R.id.player_view)
+
+        // Cast button: Media3 resolves the Cast MediaRouteSelector and wires the
+        // button to the global Cast session, so selecting a device affects the
+        // player held by PlaybackService.
         val routeButton = findViewById<MediaRouteButton>(R.id.media_route_button)
         val routeButtonSetup = MediaRouteButtonFactory.setUpMediaRouteButton(this, routeButton)
         routeButtonSetup.addListener({
@@ -33,28 +46,55 @@ class MainActivity : AppCompatActivity() {
                 Log.w(TAG, "No se pudo configurar el botón Cast", e)
             }
         }, ContextCompat.getMainExecutor(this))
-
-        // 2) Playback stack: local ExoPlayer wrapped by CastPlayer. CastPlayer plays
-        //    locally when there is no Cast session and on the remote device when there is one.
-        val exoPlayer = ExoPlayer.Builder(this).build()
-        castPlayer = CastPlayer.Builder(this)
-            .setLocalPlayer(exoPlayer)
-            .build()
-
-        val playerView = findViewById<PlayerView>(R.id.player_view)
-        playerView.player = castPlayer
-
-        // 3) Local MP4 video. Replace res/raw/sample_video.mp4 with a real video file.
-        val videoUri = Uri.parse("android.resource://$packageName/${R.raw.sample_video}")
-        castPlayer.setMediaItem(MediaItem.fromUri(videoUri))
-        castPlayer.prepare()
-        castPlayer.playWhenReady = true
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // CastPlayer.release() releases both the local ExoPlayer and the remote player.
-        castPlayer.release()
+    override fun onStart() {
+        super.onStart()
+        connectToPlaybackService()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        playerView.player = null
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+    }
+
+    private fun connectToPlaybackService() {
+        val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val future = MediaController.Builder(this, sessionToken)
+            .setListener(object : MediaController.Listener {
+                override fun onDisconnected(controller: MediaController) {
+                    playerView.player = null
+                }
+            })
+            .buildAsync()
+        controllerFuture = future
+
+        future.addListener({
+            try {
+                val controller = future.get()
+                playerView.player = controller
+                startLocalVideoIfNeeded(controller)
+            } catch (e: Exception) {
+                Log.e(TAG, "No se pudo conectar con PlaybackService", e)
+                Toast.makeText(this, R.string.playback_service_error, Toast.LENGTH_SHORT).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    /**
+     * First launch only: queue the bundled MP4. If the service is already playing
+     * (e.g. after a configuration change), playback is left untouched.
+     */
+    private fun startLocalVideoIfNeeded(controller: MediaController) {
+        if (controller.currentMediaItem != null) return
+
+        // Replace res/raw/sample_video.mp4 with a real MP4 file.
+        val videoUri = Uri.parse("android.resource://$packageName/${R.raw.sample_video}")
+        controller.setMediaItem(MediaItem.fromUri(videoUri))
+        controller.prepare()
+        controller.playWhenReady = true
     }
 
     private companion object {

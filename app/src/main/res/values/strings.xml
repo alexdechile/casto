@@ -4,4 +4,5 @@
     <string name="media_route_button_description">Enviar a dispositivo Cast</string>
     <string name="play">Reproducir</string>
     <string name="pause">Pausar</string>
+    <string name="playback_service_error">No se pudo conectar al servicio de reproducción</string>
 </resources>
